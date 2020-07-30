@@ -19,11 +19,7 @@ void usage() {
 }
 
 Mac getmymac(struct ifreq ifr){
-	char buf[20];
-	unsigned char *mac=NULL;
-    mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
-	sprintf(buf,"%02x:%02x:%02x:%02x:%02x:%02x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-	Mac mymac=Mac(buf);
+	Mac mymac=Mac(ifr.ifr_hwaddr);
 	return mymac;
 }
 Ip getmyip(struct ifreq ifr){

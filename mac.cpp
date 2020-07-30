@@ -1,4 +1,4 @@
-#include "mac.h"
+	#include "mac.h"
 
 Mac::Mac(const std::string r) {
 	unsigned int a, b, c, d, e, f;
@@ -13,6 +13,12 @@ Mac::Mac(const std::string r) {
 	mac_[3] = d;
 	mac_[4] = e;
 	mac_[5] = f;
+}
+Mac::Mac(const struct sockaddr s){
+	unsigned char *mac=NULL;
+    mac = (unsigned char*)s.sa_data;
+	for(int i=0; i<6; i++)
+		mac_[i]=mac[i];	
 }
 
 Mac::operator std::string() const {

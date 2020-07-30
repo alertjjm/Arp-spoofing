@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <sys/socket.h>
 
 struct Mac final {
 	static const int SIZE = 6;
@@ -13,7 +14,7 @@ struct Mac final {
 	Mac() {}
 	Mac(const uint8_t* r) { memcpy(this->mac_, r, SIZE); }
 	Mac(const std::string r);
-
+	Mac(const struct sockaddr s);
 	//
 	// casting operator
 	//
