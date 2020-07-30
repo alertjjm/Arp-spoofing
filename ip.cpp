@@ -11,6 +11,10 @@ Ip::Ip(const std::string r) {
 	ip_ = (a << 24) | (b << 16) | (c << 8) | d;
 }
 
+Ip::Ip(const struct in_addr r){
+	ip_=r.s_addr;
+}
+
 Ip::operator std::string() const {
 	char buf[32]; // enough size
 	sprintf(buf, "%u.%u.%u.%u",
@@ -20,6 +24,7 @@ Ip::operator std::string() const {
 		(ip_ & 0x000000FF));
 	return std::string(buf);
 }
+
 
 #ifdef GTEST
 #include <gtest/gtest.h>

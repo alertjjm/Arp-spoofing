@@ -23,9 +23,7 @@ Mac getmymac(struct ifreq ifr){
 	return mymac;
 }
 Ip getmyip(struct ifreq ifr){
-	char buf[30];
-	strcpy(buf,inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-	Ip myip=Ip(buf);
+	Ip myip=Ip(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 	return myip;
 }
 Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){

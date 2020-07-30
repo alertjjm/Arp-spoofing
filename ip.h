@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include <string>
-
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
 struct Ip final {
 	static const int SIZE = 4;
 
@@ -12,7 +14,7 @@ struct Ip final {
 	Ip() {}
 	Ip(const uint32_t r) : ip_(r) {}
 	Ip(const std::string r);
-
+	Ip(const struct in_addr r);
 	//
 	// casting operator
 	//
