@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <pcap.h>
 #include <unistd.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include "ethhdr.h"
