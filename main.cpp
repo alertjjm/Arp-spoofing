@@ -27,7 +27,6 @@ Ip getmyip(struct ifreq ifr){
 	return myip;
 }
 Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
-	char buf[20];
 	EthArpPacket packet;
 	const u_char* rawpacket;
 
@@ -57,7 +56,7 @@ Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
         	exit(1);
 		}
 		memcpy(&packet,rawpacket,sizeof(EthArpPacket));
-		if(ntohs(packet.arp_.op_)==ArpHdr::Reply && ntohl(packet.arp_.sip_)==sip){
+		if(ntohs(packet.arp_.op_)==ArpHdr::Reply && ntohl(packet.arp_.sip_)==sip){//if received packet is Arpreply and ip check
 			Mac resultmac=packet.arp_.smac_;
 			return resultmac;
 		}
