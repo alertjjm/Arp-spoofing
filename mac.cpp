@@ -14,10 +14,10 @@ Mac::Mac(const std::string r) {
 	mac_[4] = e;
 	mac_[5] = f;
 }
-Mac::Mac(const struct sockaddr s){
+Mac::Mac(const struct sockaddr s){//newly added constructor
 	unsigned char *mac=NULL;
-    mac = (unsigned char*)s.sa_data;
-	for(int i=0; i<6; i++)
+    mac = (unsigned char*)s.sa_data; //sa_data -> char [ ] type
+	for(int i=0; i<Mac::SIZE; i++) //6 times
 		mac_[i]=mac[i];	
 }
 

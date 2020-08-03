@@ -19,18 +19,18 @@ void usage() {
 }
 
 Mac getmymac(struct ifreq ifr){
-	Mac mymac=Mac(ifr.ifr_hwaddr);
+	Mac mymac=Mac(ifr.ifr_hwaddr); //using overloaded constructor
 	return mymac;
 }
 Ip getmyip(struct ifreq ifr){
-	Ip myip=Ip(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+	Ip myip=Ip(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr); //using overloaded constructor
 	return myip;
 }
 Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
 	EthArpPacket packet;
 	const u_char* rawpacket;
-
-	packet.eth_.dmac_ = Mac("ff:ff:ff:ff:ff:ff");//mac of target
+	//constructing arp request packet: 'who is sip??'
+	packet.eth_.dmac_ = Mac("ff:ff:ff:ff:ff:ff");//broadcast
 	packet.eth_.smac_ = mmac;//mac of mine
 	packet.eth_.type_ = htons(EthHdr::Arp);
 
@@ -41,9 +41,10 @@ Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
 	packet.arp_.op_ = htons(ArpHdr::Request);
 	packet.arp_.smac_ = mmac;//mac of mine
 	packet.arp_.sip_ = htonl(mip);//ip of mine
-	packet.arp_.tmac_ = Mac("00:00:00:00:00:00");
-	packet.arp_.tip_ = htonl(sip);//ip of target
-	int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
+	packet.arp_.tmac_ = Mac("00:00:00:00:00:00"); //not defined
+	packet.arp_.tip_ = htonl(sip);//ip of sender : target
+	//send arp request
+	int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket)); 
 	if (res != 0) {
 		fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
 	}
