@@ -64,10 +64,11 @@ Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
 			return resultmac;
 		}
 		limit++;
-		if(limit>=5){//pcap handle waits 10ms for 5times
+		if(limit>=3){//pcap handle waits 10ms for 5times
 			std::cout<<"[Error] Cannot reach ip: "<<std::string(sip)<<", please check the <sender ip> again"<<std::endl;
 			exit(1);
 		}
+		sleep(0);
     }
 }
 
