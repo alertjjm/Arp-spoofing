@@ -18,4 +18,8 @@ BOB9 assignment
 ---
 ## Sender(Victim)의 인터넷 접속이 불가한 것을 확인
 ![캡처4](https://user-images.githubusercontent.com/46064193/88828367-1ad49e80-d206-11ea-85f2-5c93a0c1d183.PNG)
+--- 
+## 잘못된 ip를 입력 시 에러
+![error](https://user-images.githubusercontent.com/46064193/89209169-be53f380-d5f8-11ea-96a7-70f46e592d5f.PNG)
+
 
