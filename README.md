@@ -2,10 +2,10 @@
 BOB9 assignment
 
 ## Usage
-''' 
+```bash
  send-arp <interface> <sender ip> <target ip>
-'''
-
+```
+--- 
 ## 프로그램 실행전 Sender(Victim)의 Arp table
 * 192.168.0.1 : 70-5d-cc-04-2b-a0
 
