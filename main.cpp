@@ -5,7 +5,8 @@
 #include <net/if.h>
 #include "ethhdr.h"
 #include "arphdr.h"
-
+#include<iostream>
+#include<string>
 #pragma pack(push, 1)
 struct EthArpPacket {
 	EthHdr eth_;
@@ -48,6 +49,7 @@ Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
 	if (res != 0) {
 		fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
 	}
+	int limit=0;
 	while(1){
 		struct pcap_pkthdr* header;
 		int res = pcap_next_ex(handle, &header, &rawpacket);
@@ -61,6 +63,11 @@ Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
 			Mac resultmac=packet.arp_.smac_;
 			return resultmac;
 		}
+		limit++;
+		if(limit>=5){//pcap handle waits 10ms for 5times
+			std::cout<<"[Error] Cannot reach ip: "<<std::string(sip)<<", please check the <sender ip> again"<<std::endl;
+			exit(1);
+		}
     }
 }
 
@@ -73,32 +80,32 @@ int main(int argc, char* argv[]) {
 	Ip senderip=Ip(argv[2]);
 	Ip targetip=Ip(argv[3]);
 	char errbuf[PCAP_ERRBUF_SIZE];
-	pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
+	pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 10, errbuf); //read_timeout 10
 	if (handle == nullptr) {
 		fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
 		return -1;
 	}
 	EthArpPacket packet;
-	////
+	///using ioctl & ifreq to get device information
 	int sock;
 	struct ifreq ifr;
 	struct ifreq ifr_ip;
 	memset(&ifr, 0x00, sizeof(ifr));
     strcpy(ifr.ifr_name, dev);
-	memset(&ifr_ip, 0x00, sizeof(ifr_ip));
+	memset(&ifr_ip, 0x00, sizeof(ifr));
     strcpy(ifr_ip.ifr_name, dev);
+ 	ifr_ip.ifr_addr.sa_family = AF_INET;
 
     int fd=socket(AF_INET, SOCK_DGRAM, 0);
     if((sock=socket(AF_INET, SOCK_DGRAM, 0))<0){
         perror("socket ");
     }
- 	ifr_ip.ifr_addr.sa_family = AF_INET;
     if(ioctl(fd,SIOCGIFHWADDR,&ifr)<0){
-        perror("ioctl ");
+        perror("ioctl mac");
         exit(1);
     }
 	if(ioctl(fd,SIOCGIFADDR,&ifr_ip)<0){
-        perror("ioctl ");
+        perror("ioctl ip");
         exit(1);
     }
 	close(sock);
@@ -120,6 +127,7 @@ int main(int argc, char* argv[]) {
 	packet.arp_.sip_ = htonl(targetip);//ip of target
 	packet.arp_.tmac_ = smac;//mac of sender
 	packet.arp_.tip_ = htonl(senderip);//ip of sender
+
 	while(1){
 		printf("sending arp!!...\n");
 		int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));

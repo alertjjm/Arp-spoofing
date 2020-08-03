@@ -15,10 +15,8 @@ Mac::Mac(const std::string r) {
 	mac_[5] = f;
 }
 Mac::Mac(const struct sockaddr s){//newly added constructor
-	unsigned char *mac=NULL;
-    mac = (unsigned char*)s.sa_data; //sa_data -> char [ ] type
 	for(int i=0; i<Mac::SIZE; i++) //6 times
-		mac_[i]=mac[i];	
+		mac_[i]=s.sa_data[i];
 }
 
 Mac::operator std::string() const {

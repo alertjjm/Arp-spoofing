@@ -11,8 +11,8 @@ Ip::Ip(const std::string r) {
 	ip_ = (a << 24) | (b << 16) | (c << 8) | d;
 }
 
-Ip::Ip(const struct in_addr r){
-	ip_=r.s_addr;
+Ip::Ip(const struct in_addr ntwk_bytodr_ip){
+	ip_=ntohl((uint32_t)ntwk_bytodr_ip.s_addr);
 }
 
 Ip::operator std::string() const {
