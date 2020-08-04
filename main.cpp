@@ -58,12 +58,12 @@ Mac getsendermac(pcap_t* handle, Ip mip, Ip sip, Mac mmac){
         	printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(handle));
         	exit(1);
 		}
-		memcpy(&packet,rawpacket,sizeof(EthArpPacket));
+		memcpy(&packet,rawpacket,sizeof(EthArpPacket)); //recive pckt pointer 
 		if(ntohs(packet.arp_.op_)==ArpHdr::Reply && ntohl(packet.arp_.sip_)==sip){//if received packet is Arpreply and ip check
 			Mac resultmac=packet.arp_.smac_;
 			return resultmac;
 		}
-		limit++;
+		limit++; // revise: time based*** - ##thread## chrono..?
 		if(limit>=3){//pcap handle waits 10ms for 5times
 			std::cout<<"[Error] Cannot reach ip: "<<std::string(sip)<<", please check the <sender ip> again"<<std::endl;
 			exit(1);
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
 	Ip senderip=Ip(argv[2]);
 	Ip targetip=Ip(argv[3]);
 	char errbuf[PCAP_ERRBUF_SIZE];
-	pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 10, errbuf); //read_timeout 10
+	pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 100, errbuf); //read_timeout 10
 	if (handle == nullptr) {
 		fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
 		return -1;
