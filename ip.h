@@ -14,7 +14,7 @@ struct Ip final {
 	Ip() {}
 	Ip(const uint32_t r) : ip_(r) {}
 	Ip(const std::string r);
-	Ip(const struct in_addr r);
+	Ip(const struct in_addr ntwk_bytodr_ip);
 	//
 	// casting operator
 	//
