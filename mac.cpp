@@ -15,8 +15,7 @@ Mac::Mac(const std::string r) {
 	mac_[5] = f;
 }
 Mac::Mac(const struct sockaddr s){//newly added constructor
-	for(int i=0; i<Mac::SIZE; i++) //6 times
-		mac_[i]=s.sa_data[i];
+	memcpy(mac_,s.sa_data,sizeof(mac_));
 }
 
 Mac::operator std::string() const {
